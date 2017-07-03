@@ -13,6 +13,7 @@ def validate(players_left, players_right):
         for player in players_left:
             ID_to_attractiveness_left[player.ID] = player.attractiveness
         sorted_left = sorted(ID_to_attractiveness_left.items(), key=operator.itemgetter(1))[::-1]
+
         # sort right
         ID_to_attractiveness_right = {}
         for player in players_right:
@@ -36,14 +37,17 @@ def validate(players_left, players_right):
             for potential_match in players_right:
                 preferences[potential_match.ID] = player.get_reward(potential_match)
             ranked = [item[0] for item in sorted(preferences.items(), key=operator.itemgetter(1))[::-1]]
+            # print [item for item in sorted(preferences.items(), key=operator.itemgetter(1))[::-1]] # Display Scores
             StableMatching[player.ID] = [0, ranked, None]
         for player in players_right:
             preferences = {}
             for potential_match in players_left:
                 preferences[potential_match.ID] = player.get_reward(potential_match)
             ranked = [item[0] for item in sorted(preferences.items(), key=operator.itemgetter(1))[::-1]]
+            # print [item for item in sorted(preferences.items(), key=operator.itemgetter(1))[::-1]] # Display Scores
             StableMatching[player.ID] = [0, ranked, None]
         StableMatching_backup = copy.deepcopy(StableMatching)
+        # print StableMatching # Display Stable Matching Dictionary
 
         # Left focused
         exit_the_loop = 0
@@ -73,8 +77,9 @@ def validate(players_left, players_right):
             player.ideal_opponent_left = Create_Agents.ID_to_Agent[StableMatching[player.ID][2]]
         for player in players_right:
             player.ideal_opponent_left = Create_Agents.ID_to_Agent[StableMatching[player.ID][2]]
-        # print StableMatching
-        # print [(key, StableMatching[key][2]) for key in StableMatching]
+        # print StableMatching # Display Stable Matching Dictionary
+        match_left_focused = [(key, StableMatching[key][2]) for key in StableMatching]
+        print match_left_focused
 
         # Right focused
 
@@ -109,7 +114,12 @@ def validate(players_left, players_right):
             player.ideal_opponent_right = Create_Agents.ID_to_Agent[StableMatching[player.ID][2]]
         for player in players_right:
             player.ideal_opponent_right = Create_Agents.ID_to_Agent[StableMatching[player.ID][2]]
-        # print StableMatching
-        # print [(key,StableMatching[key][2]) for key in StableMatching]
+        # print StableMatching # Display Stable Matching Dictionary
+        match_right_focused = [(key,StableMatching[key][2]) for key in StableMatching]
+        print match_right_focused
+        print("Difference: ")
+        match_difference = sorted(list(set(match_right_focused)-set(match_left_focused)))
+        print match_difference
+        print("number of different pairs: {0}".format(len(match_difference)))
 
     print "Ideal Opponent: Assigned!"

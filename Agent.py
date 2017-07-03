@@ -18,6 +18,8 @@ class Agent:
         self.ideal_opponent_right = None
         self.rank = None
         self.parameters = {}
+        self.meeting_history = {i+1: [] for i in range(config.simulation_repeated)}
+        self.reward_history = {i+1: [] for i in range(config.simulation_repeated)}
 
     def print_instance(self):
         print "  {0} {1} {2} {3} {4} {5}".format(self.ID, self.strategy, self.matched, self.attractiveness, self.interest, self.opponent)
@@ -31,19 +33,33 @@ class Agent:
         else:
             # applied cosine similarity
             if config.subjective == 1:
-                reward = opponent.attractiveness + config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                # reward = opponent.attractiveness * random.uniform(0,1) * config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                reward = opponent.attractiveness + random.uniform(0,1) * config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                # reward = opponent.attractiveness * random.uniform(-1,1) * config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                # reward = opponent.attractiveness + random.uniform(-1,1) * config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                # reward = opponent.attractiveness * config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
+                # reward = opponent.attractiveness + config.subjectivity_constant*( sum([a*b for a,b in zip(self.interest,opponent.interest)]) / (math.sqrt(sum([a**2 for a in self.interest])) * math.sqrt(sum([b**2 for b in opponent.interest]))) )
             elif config.subjective == 0:
                 reward = opponent.attractiveness
         return reward
 
     def get_decision(self, opponent, time):
-        decision, self.parameters = Strategy.get_decision(self.strategy, self.parameters, self.get_reward(opponent), time)
-        return decision
+        score = self.get_reward(opponent)
+        decision, self.parameters = Strategy.get_decision(self.strategy, self.parameters, score, time)
+        return decision, score
 
     def learn(self):
-        self.parameters = Strategy.learn(self.strategy, self.parameters, self.get_reward(self.opponent))
+        self.parameters = Strategy.learn(self.strategy, self.parameters, self.meeting_history, self.reward_history)
         # if self.strategy == 'threshold':
         #     print self.parameters
+
+    def learn_overtime(self):
+        self.parameters = Strategy.learn_overtime(self.strategy, self.parameters, self.meeting_history)
+        # if self.strategy == 'threshold':
+        #     print self.parameters
+
+    def display_secret(self):
+        print("*** secret *** attractiveness: {0}".format(self.attractiveness))
 
     def reflection(self, opponent_value):
         self.parameters = Strategy.reflection(self.strategy, self.parameters, opponent_value)

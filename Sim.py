@@ -39,8 +39,10 @@ for repeated in range(config.simulation_repeated):
 
         for meeting in set_of_meetings:
             player_left, player_right = meeting[0], meeting[1]
-            player_left_decision = player_left.get_decision(player_right, time)
-            player_right_decision = player_right.get_decision(player_left, time)
+            player_left_decision, player_left_utility = player_left.get_decision(player_right, time)
+            player_left.meeting_history[repeated + 1].append((player_left_utility, player_left_decision))
+            player_right_decision, player_right_utility = player_right.get_decision(player_left, time)
+            player_right.meeting_history[repeated + 1].append((player_right_utility, player_right_decision))
 
             if player_left_decision == "yes" and player_right_decision == "yes":
                 set_of_matchings.append(meeting)
@@ -63,6 +65,11 @@ for repeated in range(config.simulation_repeated):
 
         if config.verbose and config.verbose_simulation:
             print "  |number_of_pairs_matched| = {0}".format(np.size(set_of_matchings)/2)
+
+        # # Learning Parameters (overtime)
+        # for player in players_left + players_right:
+        #     player.display_secret()
+        #     player.learn_overtime()
 
     # Analysis
     if config.verbose_analysis:
@@ -94,11 +101,14 @@ for repeated in range(config.simulation_repeated):
 
     # Learning Parameters
     for player in players_left + players_right:
+        player.display_secret()
+        player.reward_history[repeated + 1] = player.get_reward(player.opponent)
         player.learn()
 
 # Validation
 if config.show_validation == 1:
     Validation.validate(players_left, players_right)
+    exit() # Skip Last Results
     if config.subjective == 0:
         overall_score = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         overall_matched = np.array([[0, 0, 0], [0, 0, 0]])

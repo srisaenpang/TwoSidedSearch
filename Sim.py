@@ -8,6 +8,8 @@ import Validation
 
 players_left, players_right = Create_Agents.gen_instancelist()
 
+
+
 for repeated in range(config.simulation_repeated):
     print "Repeated = {0}".format(repeated + 1)
 
@@ -16,6 +18,21 @@ for repeated in range(config.simulation_repeated):
         player.matched = 0
         player.opponent = None
 
+    matching_pool_for_left = []
+    for player in players_right:
+        matching_pool_for_left.append(player)
+
+    matching_pool_for_right = []
+    for player in players_left:
+        matching_pool_for_right.append(player)
+
+    # print("mathcing pool:")
+    # print len(matching_pool_for_left)
+    # print len(matching_pool_for_right)
+    #
+    # # Testing
+    # exit()
+
     for time in range(config.simulation_time):
         if config.verbose and config.verbose_simulation:
             print " Time = {0}".format(time+1)
@@ -23,53 +40,89 @@ for repeated in range(config.simulation_repeated):
         available_players_left = [player for player in players_left if player.matched == 0]
         available_players_right = [player for player in players_right if player.matched == 0]
         if config.verbose and config.verbose_simulation:
-            print "  |alive_players_left| = {0}".format(np.size(available_players_left))
-            print "  |alive_players_right| = {0}".format(np.size(available_players_right))
+            print "  |alive_players_left| = {0}".format(len(available_players_left))
+            print "  |alive_players_right| = {0}".format(len(available_players_right))
+
+        available_matching_pool_for_left = [player for player in matching_pool_for_left]
+        available_matching_pool_for_right = [player for player in matching_pool_for_right]
+        if config.verbose and config.verbose_simulation:
+            print "  |alive_matching_pool_for_left| = {0}".format(len(available_matching_pool_for_left))
+            print "  |alive_matching_pool_for_right| = {0}".format(len(available_matching_pool_for_right))
 
         # print [player.ID for player in available_players_left]
 
         set_of_meetings = []
-        while np.size(available_players_left) > 0 and np.size(available_players_right) > 0:
-            meeting = [random.sample(available_players_left,1)[0], random.sample(available_players_right,1)[0]]
+
+        # find a meeting for each 'Left' players
+        while len(available_players_left) > 0:
+            meeting = [random.sample(available_players_left,1)[0], random.sample(available_matching_pool_for_left,1)[0]]
             set_of_meetings.append(meeting)
             # remove these players from available list
-            player_left, player_right = meeting[0], meeting[1]
-            available_players_left.remove(player_left)
-            available_players_right.remove(player_right)
+            main_player, potential_match = meeting[0], meeting[1]
+            available_players_left.remove(main_player)
+            available_matching_pool_for_left.remove(potential_match)
+
+
+        # find a meeting for each 'Right' players
+        while len(available_players_right) > 0:
+            meeting = [random.sample(available_players_right, 1)[0], random.sample(available_matching_pool_for_right, 1)[0]]
+            set_of_meetings.append(meeting)
+            # remove these players from available list
+            main_player, potential_match = meeting[0], meeting[1]
+            available_players_right.remove(main_player)
+            available_matching_pool_for_right.remove(potential_match)
 
         for meeting in set_of_meetings:
-            player_left, player_right = meeting[0], meeting[1]
-            player_left_decision, player_left_utility = player_left.get_decision(player_right, time)
-            player_left.meeting_history[repeated + 1].append((player_left_utility, player_left_decision))
-            player_right_decision, player_right_utility = player_right.get_decision(player_left, time)
-            player_right.meeting_history[repeated + 1].append((player_right_utility, player_right_decision))
+            main_player, potential_match = meeting[0], meeting[1]
+            main_player_decision, main_player_utility = main_player.get_decision(potential_match, time+1)
+            main_player.meeting_history[repeated + 1].append((main_player_utility, main_player_decision))
+            potential_match_decision, potential_match_utility = potential_match.get_decision(main_player, time+1)
+            # potential_match.meeting_history[repeated + 1].append((potential_match_utility, potential_match_decision))
 
-            if player_left_decision == "yes" and player_right_decision == "yes":
+            if main_player_decision == "yes" and potential_match_decision == "yes":
                 set_of_matchings.append(meeting)
-                player_left, player_right = meeting[0], meeting[1]
-                player_left.matched, player_left.opponent = 1, player_right
-                player_right.matched, player_right.opponent = 1, player_left
+                main_player, potential_match = meeting[0], meeting[1]
+                main_player.matched, main_player.opponent = 1, potential_match
+                # potential_match.matched, potential_match.opponent = 1, main_player
                 # add new players here
-                if config.replacement_mode == "None":
-                    pass
+                if config.replacement_mode == "None" or config.replacement_mode == "Prob-Entrance":
+                    if main_player in players_left:
+                        print main_player.ID, potential_match.ID
+                        matching_pool_for_left.remove(potential_match)
+                    else:
+                        print main_player.ID, potential_match.ID
+                        matching_pool_for_right.remove(potential_match)
+                    # if config.replacement_mode == "Prob-Entrance":
+                    #     # add new players with prob.
+                    #     pass
                 elif config.replacement_mode == "Clone":
-                    pass
-                elif config.replacement_mode == "Prob-Entrance":
-                    pass
+                    pass    # since an agent with the same property replace immediately
+                else:
+                    raise ValueError("Replacement Mode Error: '{0}' is unknown".format(config.replacement_mode))
 
-            # Expectation modification when got refused
-            elif player_left_decision == "yes" and player_right_decision == "no":
-                player_left.reflection(player_left.get_reward(player_right))
-            elif player_left_decision == "no" and player_right_decision == "yes":
-                player_right.reflection(player_right.get_reward(player_left))
+            # # Expectation modification when got refused
+            # elif main_player_decision == "yes" and potential_match_decision == "no":
+            #     main_player.reflection(main_player.get_reward(potential_match))
+            # elif main_player_decision == "no" and potential_match_decision == "yes":
+            #     potential_match.reflection(potential_match.get_reward(main_player))
 
         if config.verbose and config.verbose_simulation:
-            print "  |number_of_pairs_matched| = {0}".format(np.size(set_of_matchings)/2)
+            print "  |number_of_matched_players| = {0}".format(len(set_of_matchings))
 
         # # Learning Parameters (overtime)
         # for player in players_left + players_right:
         #     player.display_secret()
         #     player.learn_overtime()
+
+        # Market Entrance
+        if config.replacement_mode == "Prob-Entrance":
+            for player in players_left:
+                if random.uniform(0,1) >= player.replacement_prob:
+                    matching_pool_for_right.append(player)
+            for player in players_right:
+                if random.uniform(9,1) >= player.replacement_prob:
+                    matching_pool_for_left.append(player)
+
 
     # Analysis
     if config.verbose_analysis:
@@ -77,14 +130,23 @@ for repeated in range(config.simulation_repeated):
         if config.verbose_analysis_matched:
             for i, matching in enumerate(set_of_matchings):
                 print " Matching {0}:".format(i)
-                matching[0].print_reward(matching[1])
-                matching[1].print_reward(matching[0])
+                # matching[0].print_reward(matching[1])
+                # matching[1].print_reward(matching[0])
+                print "  main_player_ID: {0}, threshold: {1}, self_attactiveness: {2}, got matched with ID: {3}, obtained utility: {4}".format(matching[0].ID, matching[0].parameters['threshold'], matching[0].attractiveness, matching[1].ID,matching[0].get_reward(matching[1]))
+                print "   {0}".format(matching[0].meeting_history)
+                print "   {0}".format(matching[0].reward_history)
 
         if config.verbose_analysis_non_matched:
             print " Non-Matched:"
             for player in [non_matched_player for non_matched_player in players_left + players_right]:
                 if player.matched == 0:
-                    player.print_reward()
+                    # player.print_reward()
+                    print "  player_ID: {0}, threshold: {1}, self_attactiveness: {2}, obtained reward: {3}".format(player.ID, player.parameters['threshold'], player.attractiveness, player.get_reward(player.opponent))
+                    print "   {0}".format(player.meeting_history)
+                    print "   {0}".format(player.reward_history)
+
+    # # Testing
+    # exit()
 
     for strategy in config.strategies:
         number = 0.0
@@ -103,12 +165,14 @@ for repeated in range(config.simulation_repeated):
     for player in players_left + players_right:
         player.display_secret()
         player.reward_history[repeated + 1] = player.get_reward(player.opponent)
+        print "reward: {0}".format(player.reward_history[repeated + 1])
         player.learn()
+        print player.meeting_history
 
 # Validation
 if config.show_validation == 1:
     Validation.validate(players_left, players_right)
-    exit() # Skip Last Results
+    # exit() # Skip Last Results
     if config.subjective == 0:
         overall_score = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         overall_matched = np.array([[0, 0, 0], [0, 0, 0]])

@@ -47,7 +47,7 @@ def validate(players_left, players_right):
             # print [item for item in sorted(preferences.items(), key=operator.itemgetter(1))[::-1]] # Display Scores
             StableMatching[player.ID] = [0, ranked, None]
         StableMatching_backup = copy.deepcopy(StableMatching)
-        # print StableMatching # Display Stable Matching Dictionary
+        print StableMatching # Display Stable Matching Dictionary
 
         # Left focused
         exit_the_loop = 0

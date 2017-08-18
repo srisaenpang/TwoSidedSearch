@@ -7,6 +7,10 @@ import Calculation
 ID_to_Agent = {None:None}
 Left_ID = []
 Right_ID = []
+Left_Attractiveness = []
+Right_Attractiveness = []
+Left_Ranked_Attractiveness = []
+Right_Ranked_Attractiveness = []
 
 def gen_instancelist():
     ID = 0
@@ -17,6 +21,7 @@ def gen_instancelist():
             new_agent = Agent.Agent(ID+i+1, strategy)
             new_agent.parameters = Strategy.inititialise_parameters(new_agent.strategy, new_agent.parameters)
             ID_to_Agent[ID+i+1] = new_agent
+            Left_Attractiveness.append(new_agent.attractiveness)
             Left_ID.append(ID+i+1)
             instancelist_left.extend([new_agent])
             Strategy.Strategy_Agent_dict[strategy].extend([new_agent])
@@ -28,10 +33,20 @@ def gen_instancelist():
             new_agent = Agent.Agent(ID+i+1, strategy)
             new_agent.parameters = Strategy.inititialise_parameters(new_agent.strategy, new_agent.parameters)
             ID_to_Agent[ID+i+1] = new_agent
+            Right_Attractiveness.append(new_agent.attractiveness)
             Right_ID.append(ID+i+1)
             instancelist_right.extend([new_agent])
             Strategy.Strategy_Agent_dict[strategy].extend([new_agent])
         ID += config.player_right[strategy]
+
+    # Rank Attractiveness
+    Left_Ranked_Attractiveness = sorted(Left_Attractiveness)
+    Right_Ranked_Attractiveness = sorted(Right_Attractiveness)
+    # print Left_Attractiveness
+    # print Left_Ranked_Attractiveness
+    # print Right_Attractiveness
+    # print Right_Ranked_Attractiveness
+    # exit()
 
     # initialise variables regarding Pearson's correlation coefficient
     Pearson_vector_xy = []
@@ -55,4 +70,4 @@ def gen_instancelist():
         Pearson_vector_x, Pearson_vector_y = zip(*Pearson_vector_xy)
         print("Pearson's correlation coefficient: {0}".format(Calculation.pearson_correlation_coefficient(Pearson_vector_x, Pearson_vector_y)))
 
-    return instancelist_left, instancelist_right
+    return instancelist_left, instancelist_right, Left_Ranked_Attractiveness, Right_Ranked_Attractiveness
